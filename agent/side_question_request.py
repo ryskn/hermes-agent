@@ -79,7 +79,7 @@ def _agent_provider_refusal(agent: Any) -> Optional[str]:
         return "moa"
     if (
         str(agent.base_url or "").lower().startswith(("acp://", "acp+tcp://"))
-        or agent.api_mode == "codex_app_server"
+        or agent.api_mode in {"codex_app_server", "claude_code"}
         or _is_external_process_provider(agent.provider)
         or not _parent_can_emit_tool_calls(agent)
     ):

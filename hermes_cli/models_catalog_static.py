@@ -379,6 +379,7 @@ CANONICAL_PROVIDERS: list[ProviderEntry] = [ProviderEntry(*row) for row in (
     ("novita", "NovitaAI", "NovitaAI (Cloud: Model API, Agent Sandbox, GPU Cloud)"),
     ("lmstudio", "LM Studio", "LM Studio (Local desktop app with built-in model server)"),
     ("anthropic", "Anthropic", "Anthropic (Claude models via API key or Claude Code)"),
+    ("claude-code-cli", "Claude Subscription (Claude Code CLI)", "Claude Pro/Max subscription via the `claude` CLI subprocess (Claude Code native tools + Hermes tools over MCP)"),
     ("openai-codex", "ChatGPT or Codex Subscription", "ChatGPT or Codex Subscription (Sign in with your ChatGPT account, uses Codex models)"),
     ("openai-api", "OpenAI API", "OpenAI API (api.openai.com, API key)"),
     ("alibaba", "Qwen Cloud", "Qwen Cloud / DashScope (Qwen + multi-provider)"),

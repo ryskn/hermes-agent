@@ -241,6 +241,14 @@ class InterruptControlMixin:
                 _request_interrupt()
             except Exception:
                 logger.debug("Failed to interrupt Codex app-server turn", exc_info=True)
+        # Same for the Claude Code subprocess runtime (#25267).
+        if getattr(self, "api_mode", None) == "claude_code":
+            _cc_interrupt = getattr(getattr(self, "_claude_code_session", None), "request_interrupt", None)
+            if callable(_cc_interrupt):
+                try:
+                    _cc_interrupt()
+                except Exception:
+                    logger.debug("Failed to interrupt Claude Code turn", exc_info=True)
 
         # Cron turns request on the conversation thread (no nested interrupt-worker deadlock); their client
         # is registered here so this cross-thread interrupt can still shut the sockets.

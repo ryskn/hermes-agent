@@ -60,6 +60,12 @@
     "kind": "bare_which"
   },
   {
+    "path": "agent/transports/claude_code_session.py",
+    "symbol": "build_child_env",
+    "kind": "known_path_table",
+    "reason": "does not resolve a command: prepends the login-shell tool dirs to the PATH of the `claude` child (claude-code-cli runtime, #25267) so the CLI's own Bash tool finds user binaries when Hermes runs from a GUI/service env; the claude binary itself is spawned by its configured name"
+  },
+  {
     "path": "agent/vault_backends/base.py",
     "symbol": "is_installed",
     "kind": "bare_which"

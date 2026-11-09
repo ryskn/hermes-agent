@@ -132,7 +132,15 @@ _HOST_MANDATED_API_MODES = {
 
 # codex_app_server is opt-in: hand the whole turn to a `codex app-server` subprocess (Codex's own
 # tool runtime), gated on `model.openai_runtime == "codex_app_server"` AND provider in {openai, openai-codex}.
-_VALID_API_MODES = {"chat_completions", "codex_responses", "anthropic_messages", "bedrock_converse", "codex_app_server"}
+# claude_code: Claude subscription through the official `claude` CLI (provider `claude-code-cli`).
+# Selected by provider, not by a runtime switch (#25267).
+_VALID_API_MODES = {
+    "chat_completions", "codex_responses", "anthropic_messages", "bedrock_converse", "codex_app_server", "claude_code",
+}
+
+# Canonical id + aliases of the Claude Code CLI provider (kept in sync with
+# plugins/model-providers/claude-code/__init__.py).
+CLAUDE_CODE_CLI_PROVIDER_NAMES = frozenset({"claude-code-cli", "claude-subscription", "claude_code_cli"})
 
 
 def _detect_api_mode_for_url(base_url: str) -> Optional[str]:
@@ -1001,6 +1009,14 @@ def _resolve_requested_shortcuts(requested_provider, explicit_api_key, explicit_
                                               target_model=target_model)
     if requested_provider in _VERTEX_NAMES:
         return _resolve_vertex_runtime(requested_provider)
+    # Claude subscription via the Claude Code CLI (#25267). There is no HTTP endpoint and no key here:
+    # the `claude` subprocess authenticates with the setup-token in $CLAUDE_CODE_OAUTH_TOKEN.
+    # Placeholders keep downstream "has credentials" checks satisfied without ever touching a real
+    # token. Aliases mirror the ProviderProfile so `--provider claude-subscription` cannot fall
+    # through to the OpenRouter/custom resolvers.
+    if requested_provider in CLAUDE_CODE_CLI_PROVIDER_NAMES:
+        return _runtime("claude-code-cli", "claude_code", "claude-code://local", "claude-code-subscription",
+                        source="claude-code-cli", requested_provider=requested_provider)
     return None
 
 

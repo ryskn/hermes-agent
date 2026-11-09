@@ -216,8 +216,9 @@ def _idle_compaction(
 
 def _codex_native_auto_compaction(agent: Any) -> bool:
     """Codex app-server threads are compacted by the codex agent itself; Hermes only
-    initiates compaction in "hermes" mode."""
-    return (
+    initiates compaction in "hermes" mode. claude_code always compacts natively inside
+    the CLI (#25267)."""
+    return getattr(agent, "api_mode", None) == "claude_code" or (
         # See #36801.
         getattr(agent, "api_mode", None) == "codex_app_server"
         and str(
@@ -303,9 +304,12 @@ def _preflight_compression(
             _compress_block_reason = f"cooldown:{_cooldown_secs:.0f}"
     elif _codex_native_auto:
         logger.info(
-            "Skipping Hermes preflight compression for codex app-server "
+            "Skipping Hermes preflight compression for %s "
             "(mode=%s); Hermes will not start thread compaction here.",
-            getattr(agent, "codex_app_server_auto_compaction", "native"),
+            getattr(agent, "api_mode", None),
+            "native"
+            if getattr(agent, "api_mode", None) == "claude_code"
+            else getattr(agent, "codex_app_server_auto_compaction", "native"),
         )
     else:
         _should_compress_now = _compressor.should_compress(_preflight_tokens)

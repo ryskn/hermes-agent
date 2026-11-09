@@ -4027,6 +4027,31 @@ def compress_context(
     # compression.codex_app_server_auto). Memory handoff is Hermes-only: no native
     # summary prompt to inject into. `is True`: MagicMock attributes are truthy.
     checkpoint_required = getattr(agent, "compression_checkpoint_required", False) is True
+    # Claude Code sessions: the `claude` CLI compacts its own context and
+    # exposes no compaction RPC, so there is nothing truthful Hermes can do
+    # here — a local summary would not shrink the real context. Equivalent
+    # to ``codex_app_server_auto: native`` with no other mode (#25267).
+    if getattr(agent, "api_mode", None) == "claude_code":
+        if checkpoint_required:
+            blocked = _checkpoint_blocked(
+                "claude_code owns the authoritative context and does not expose a truthful pre-compaction transcript boundary"
+            )
+            _emit_bypassed_attempt_telemetry(
+                agent, attempt.started_at, commit_status="aborted", failure_class=f"exception:{type(blocked).__name__}",
+                approx_tokens=approx_tokens, route="claude_code", attempt_seed=attempt.seed,
+            )
+            raise blocked
+        logger.info(
+            "claude_code compaction skipped: the claude CLI compacts its own context (session=%s messages=%d tokens=~%s)",
+            getattr(agent, "session_id", None) or "none", len(messages),
+            f"{approx_tokens:,}" if approx_tokens else "unknown",
+        )
+        attempt.restore_compressor(agent.context_compressor)
+        _emit_bypassed_attempt_telemetry(
+            agent, attempt.started_at, commit_status="blocked", failure_class="blocked:claude_code_native",
+            approx_tokens=approx_tokens, route="claude_code", attempt_seed=attempt.seed,
+        )
+        return messages, _existing_system_prompt(agent, system_message)
     if getattr(agent, "api_mode", None) == "codex_app_server":
         if checkpoint_required:
             blocked = _checkpoint_blocked(

@@ -107,7 +107,8 @@ def _cells() -> list[tuple[str, str, str]]:
     for pid, cfg in PROVIDER_REGISTRY.items():
         profile = get_provider_profile(pid)
         name = profile.name if profile else pid
-        if name in seen or cfg.auth_type == "external_process":
+        # No HTTP wire to record: external-process providers and the `claude` CLI subprocess runtime.
+        if name in seen or cfg.auth_type == "external_process" or (profile and profile.api_mode == "claude_code"):
             continue
         seen.add(name)
         fallback = profile.fallback_models[0] if profile and profile.fallback_models else "test-model"

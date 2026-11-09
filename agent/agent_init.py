@@ -245,10 +245,12 @@ def _refuse_checkpoint_required_on_codex_app_server(
     """Fail closed at init: the codex app-server compacts its own thread without a truthful
     pre-compaction boundary (default "native" mode), so a required checkpoint can't be
     guaranteed — the compress_context() guard alone cannot cover native turns."""
-    if checkpoint_required and api_mode == "codex_app_server":
+    # claude_code has the same shape: the `claude` CLI compacts its own
+    # context and Hermes never sees a pre-compaction boundary (#25267).
+    if checkpoint_required and api_mode in {"codex_app_server", "claude_code"}:
         raise RuntimeError(
             "BLOCKED_MISSING_PREREQUISITE: compression.checkpoint_required "
-            "is incompatible with the codex_app_server API mode: the codex "
+            f"is incompatible with the {api_mode} API mode: the codex "
             "agent compacts its own thread without a truthful pre-compaction "
             "transcript boundary, so a required pre-compress checkpoint "
             "cannot be guaranteed. Disable compression.checkpoint_required "
@@ -287,7 +289,7 @@ class CompressionSettings(SimpleNamespace):
 
 _EXPLICIT_API_MODES = {
     "chat_completions", "codex_responses", "anthropic_messages", "bedrock_converse",
-    "codex_app_server",
+    "codex_app_server", "claude_code",
 }
 
 
@@ -302,6 +304,8 @@ def _resolve_api_mode(agent, api_mode, provider_name, base_url):
         # A provider plugin's own dialect (``register_transport(api_mode, cls)``) is as explicit
         # as the in-tree modes; rewriting it to chat_completions silently dropped its transport.
         agent.api_mode = api_mode
+    elif agent.provider == "claude-code-cli":
+        agent.api_mode = "claude_code"
     elif agent.provider in {"openai-codex", "xai", "xai-oauth"}:
         agent.api_mode = "codex_responses"
     elif provider_name is None and host == "chatgpt.com" and "/backend-api/codex" in url:
@@ -730,6 +734,17 @@ def _init_bedrock_client(agent, base_url):
         print(f"🤖 AI Agent initialized with model: {agent.model} (AWS Bedrock, {agent._bedrock_region}{_gr_label})")
 
 
+def _init_claude_code_client(agent, api_key, base_url):
+    """claude_code: the `claude` CLI owns the network and authenticates with its
+    setup-token. No HTTP client, no API key. See agent/claude_code_runtime.py (#25267)."""
+    agent.client = None
+    agent._client_kwargs = {}
+    agent.api_key = api_key or "claude-code-subscription"
+    agent.base_url = base_url or "claude-code://local"
+    if not agent.quiet_mode:
+        print(f"🤖 AI Agent initialized with model: {agent.model} (Claude Code subscription)")
+
+
 def _explicit_client_kwargs(agent, api_key, base_url, _provider_timeout) -> dict[str, Any]:
     """OpenAI-client kwargs from explicit CLI/gateway credentials (auth already resolved)."""
     _parsed_url = urlparse(base_url)
@@ -955,6 +970,8 @@ def _build_client(agent, api_key, base_url, fallback_model):
         _init_moa_client(agent, api_key)
     elif agent.api_mode == "bedrock_converse":
         _init_bedrock_client(agent, base_url)
+    elif agent.api_mode == "claude_code":
+        _init_claude_code_client(agent, api_key, base_url)
     else:
         _init_openai_client(agent, api_key, base_url, fallback_model, _provider_timeout)
 

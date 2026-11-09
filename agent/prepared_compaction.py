@@ -376,7 +376,7 @@ class PreparedCompaction:
         if not getattr(agent, "compression_enabled", False) or getattr(agent, "_persist_disabled", False):
             return True  # compression off, or a background-review fork of the live session
         if (
-            getattr(agent, "api_mode", None) == "codex_app_server"
+            getattr(agent, "api_mode", None) in {"codex_app_server", "claude_code"}
             or getattr(agent, "codex_responses_native_compaction", False)
             or getattr(compressor, "_micro_compact_enabled", False)
         ):

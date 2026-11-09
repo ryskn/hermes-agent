@@ -1270,7 +1270,8 @@ def build_turn_context(
     if not plugin_block_message:
         _maybe_title_session_at_turn_start(agent, messages, title_user_message)
 
-    # Sidecar skipped for codex_app_server/MoA; list content carries its context as a part in every mode.
+    # Sidecar skipped for codex_app_server/claude_code/MoA (the subprocess runtimes never send
+    # api_messages); list content carries its context as a part in every mode.
     if 0 <= current_turn_user_idx < len(messages) and messages[current_turn_user_idx].get("role") == "user":
         if plugin_block_message:
             _withhold_blocked_prompt(agent, messages[current_turn_user_idx], original_user_message)
@@ -1279,7 +1280,7 @@ def build_turn_context(
                 agent, messages[current_turn_user_idx], ext_prefetch_cache, plugin_user_context,
                 preflight_compressed=compaction.compressed,
             )
-        elif not moa_active and getattr(agent, "api_mode", None) != "codex_app_server":
+        elif not moa_active and getattr(agent, "api_mode", None) not in {"codex_app_server", "claude_code"}:
             _stamp_api_content_sidecar(
                 agent, messages, current_turn_user_idx, ext_prefetch_cache,
                 plugin_user_context, preflight_compressed=compaction.compressed,

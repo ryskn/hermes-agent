@@ -31,6 +31,10 @@ HERMES_OVERLAYS: dict[str, HermesOverlay] = {
     "nous": HermesOverlay(auth_type="oauth_device_code", base_url_override="https://inference-api.nousresearch.com/v1"),
     "openai-codex": HermesOverlay(transport="codex_responses", auth_type="oauth_external",
                                   base_url_override="https://chatgpt.com/backend-api/codex"),
+    # Claude subscription via the `claude` CLI subprocess (api_mode claude_code). No HTTP endpoint;
+    # the placeholder URL keeps catalog and doctor consumers that expect a base_url happy (#25267).
+    "claude-code-cli": HermesOverlay(transport="claude_code", auth_type="oauth_external",
+                                     base_url_override="claude-code://local"),
     "openai-api": HermesOverlay(transport="codex_responses", base_url_override="https://api.openai.com/v1",
                                 base_url_env_var="OPENAI_BASE_URL"),
     "xai-oauth": HermesOverlay(transport="codex_responses", auth_type="oauth_external",
@@ -143,6 +147,7 @@ ALIASES: dict[str, str] = {alias: canon for canon, aliases in _ALIAS_GROUPS.item
 
 _LABEL_OVERRIDES: dict[str, str] = {
     "moa": "Mixture of Agents", "nous": "Nous Portal", "openai-codex": "ChatGPT or Codex Subscription",
+    "claude-code-cli": "Claude Subscription (Claude Code CLI)",
     "stepfun": "StepFun Step Plan", "xiaomi": "Xiaomi MiMo", "gmi": "GMI Cloud",
     "upstage": "Upstage Solar", "actual": "Actual Computer", "tencent-tokenhub": "Tencent TokenHub",
     "nebius-token-factory": "Nebius Token Factory", "tencent-tokenplan": "Tencent TokenPlan", "lmstudio": "LM Studio",
@@ -156,6 +161,8 @@ _LABEL_OVERRIDES: dict[str, str] = {
 TRANSPORT_TO_API_MODE: dict[str, str] = {
     "openai_chat": "chat_completions", "anthropic_messages": "anthropic_messages",
     "codex_responses": "codex_responses", "bedrock_converse": "bedrock_converse",
+    # claude-code-cli: the `claude` CLI subprocess runtime (#25267); no HTTP wire, the transport IS the mode.
+    "claude_code": "claude_code",
 }
 
 

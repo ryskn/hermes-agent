@@ -179,6 +179,10 @@ _REGISTRY_ROWS: tuple[Any, ...] = (
         "xai-oauth", "xAI Grok OAuth (SuperGrok / Premium+)", "oauth_external",
         inference_base_url=DEFAULT_XAI_OAUTH_BASE_URL),
     ProviderConfig("qwen-oauth", "Qwen OAuth", "oauth_external", inference_base_url=DEFAULT_QWEN_BASE_URL),
+    # Claude subscription driven through the `claude` CLI subprocess. No inference URL: the CLI
+    # owns the network and its own setup-token (#25267). NOTE: "claude-code" (no -cli) stays an
+    # alias of the anthropic API-key provider for backward compatibility.
+    ProviderConfig("claude-code-cli", "Claude Subscription (Claude Code CLI)", "oauth_external", inference_base_url=""),
     ("lmstudio", "LM Studio", "http://127.0.0.1:1234/v1", ("LM_API_KEY",), "LM_BASE_URL"),
     ("gemini", "Google AI Studio", "https://generativelanguage.googleapis.com/v1beta",
      ("GOOGLE_API_KEY", "GEMINI_API_KEY"), "GEMINI_BASE_URL"),

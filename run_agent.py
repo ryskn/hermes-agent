@@ -947,6 +947,7 @@ class AIAgent(
         _quietly(self._drop_shared_client, lambda c: self._close_openai_client(c, reason="agent_close", shared=True))
         self._close_request_clients("agent_close")
         _quietly(self._close_codex_session)
+        _quietly(self._close_claude_code_session)
         # Free conversation history proactively: callers may still hold the closed agent. The DB-flush
         # settled-prefix snapshot and the streamed-text accumulator are shadow copies of the same transcript;
         # on a closed delegate child they were the only remaining owners, pinning its history in the parent heap.
@@ -1007,6 +1008,13 @@ class AIAgent(
         if codex_session is not None:
             self._codex_session = None
             codex_session.close()
+
+    def _close_claude_code_session(self) -> None:
+        """Same ownership rule for the Claude Code subprocess (#25267)."""
+        claude_code_session = getattr(self, "_claude_code_session", None)
+        if claude_code_session is not None:
+            self._claude_code_session = None
+            claude_code_session.close()
 
     @staticmethod
     def _trim_process_memory() -> None:
@@ -1481,6 +1489,19 @@ def _save_sample_trajectory(agent: AIAgent, result: dict, user_query: str, model
     except Exception as e:
         print(f"\n⚠️ Failed to save sample: {e}")
 
+
+    def _run_claude_code_turn(
+        self,
+        *,
+        user_message: str,
+        original_user_message: Any,
+        messages: List[Dict[str, Any]],
+        effective_task_id: str,
+        should_review_memory: bool = False,
+    ) -> Dict[str, Any]:
+        """Forwarder — see ``agent.claude_code_runtime.run_claude_code_turn``."""
+        from agent.claude_code_runtime import run_claude_code_turn
+        return run_claude_code_turn(self, user_message=user_message, original_user_message=original_user_message, messages=messages, effective_task_id=effective_task_id, should_review_memory=should_review_memory)
 
 def main(
     query: str | None = None, model: str = "", api_key: str | None = None, base_url: str = "", max_turns: int = 10,

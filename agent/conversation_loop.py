@@ -1612,10 +1612,18 @@ def _turn_without_loop(agent: Any, s: _LoopState, block_message: str) -> Optiona
     """The turn's result when it never enters the generic loop, else None. A ``pre_llm_call``
     veto finalizes with no inference request (the block message closes the transcript pair);
     the opt-in codex app-server runtime runs the whole turn in its subprocess
-    (agent/transports/codex_app_server_session.py)."""
+    (agent/transports/codex_app_server_session.py); so does the Claude Code subscription
+    runtime, where the official `claude` CLI owns the loop and its native tools and Hermes
+    tools reach it over MCP (agent/claude_code_runtime.py, #25267)."""
     if block_message:
         s.final_response, s._turn_exit_reason = block_message, PRE_LLM_BLOCK_EXIT_REASON
         return _finalize_from_state(agent, s)
+    if agent.api_mode == "claude_code":
+        return agent._run_claude_code_turn(
+            user_message=s.user_message, original_user_message=s.original_user_message,
+            messages=s.messages, effective_task_id=s.effective_task_id,
+            should_review_memory=s._should_review_memory,
+        )
     return _codex_app_server_turn(agent, s) if agent.api_mode == "codex_app_server" else None
 
 

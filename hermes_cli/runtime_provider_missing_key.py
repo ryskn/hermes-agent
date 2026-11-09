@@ -73,9 +73,9 @@ def named_profile_key_hint(env_vars) -> str:
     return f" {where_to_set_key(names[0])}"
 
 
-# Transports that never send the resolved key: the codex app-server authenticates with its own login,
+# Transports that never send the resolved key: the codex app-server and the claude CLI authenticate with their own login,
 # Bedrock with the AWS SDK credential chain (agent_init builds neither client from ``api_key``).
-_KEYLESS_API_MODES = frozenset({"codex_app_server", "bedrock_converse"})
+_KEYLESS_API_MODES = frozenset({"codex_app_server", "claude_code", "bedrock_converse"})
 
 
 def raise_if_declared_key_missing(requested_provider: Optional[str], runtime: dict[str, Any], model_cfg: dict[str, Any],
