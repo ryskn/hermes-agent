@@ -9,8 +9,10 @@ ARG CLAUDE_CODE_VERSION
 USER root
 
 # claude-code-cli provider は Hermes から `claude` を子プロセスとして起動する。
+# npm は allowScripts に無いパッケージの postinstall を止めるので、ネイティブバイナリを置く install.cjs を直接実行する。
 RUN npm install --prefix /opt/claude-code --omit=dev --no-fund --no-audit \
       "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" && \
+    cd /opt/claude-code/node_modules/@anthropic-ai/claude-code && node install.cjs && cd / && \
     ln -sf /opt/claude-code/node_modules/.bin/claude /usr/local/bin/claude && \
     claude --version
 
