@@ -1,0 +1,56 @@
+# opc (ryskn/opc-infra) で動かすイメージを作る。arm64 だけ。
+# BASE_REF (upstream の tag) から変更したファイルを context に入れ、公式イメージの上に重ねる。
+name: opc-image
+
+on:
+  push:
+    branches: [claude-code-cli]
+  workflow_dispatch:
+
+env:
+  BASE_REF: v0.23.0
+  # nousresearch/hermes-agent:v0.23.0 の multi-arch index の digest
+  BASE_IMAGE: docker.io/nousresearch/hermes-agent:v0.23.0@sha256:adb7890916de63245523492be8f68f9d2095fecbec4e2a6dab7960381f0fc002
+  CLAUDE_CODE_VERSION: 2.1.319
+  IMAGE: ghcr.io/ryskn/hermes-agent
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare context
+        run: |
+          git fetch --no-tags https://github.com/NousResearch/hermes-agent.git "refs/tags/${BASE_REF}:refs/tags/${BASE_REF}"
+          mkdir ctx
+          git diff --name-only --diff-filter=AMR "${BASE_REF}" HEAD -- . \
+            ':!website' ':!tests' ':!.github' ':!deploy' > ctx.list
+          cat ctx.list
+          xargs -a ctx.list cp --parents -t ctx
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ctx
+          file: deploy/opc/Dockerfile
+          platforms: linux/arm64
+          push: true
+          build-args: |
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
+            CLAUDE_CODE_VERSION=${{ env.CLAUDE_CODE_VERSION }}
+          tags: |
+            ${{ env.IMAGE }}:${{ env.BASE_REF }}-ccli-${{ github.sha }}
